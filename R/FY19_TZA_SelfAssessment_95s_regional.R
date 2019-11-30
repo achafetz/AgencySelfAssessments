@@ -61,7 +61,7 @@ df_mech_map <- tibble::tribble(
            modality = case_when(str_detect(modality, "Index") ~ "Index",
                                  !indicator %in% c("HTS_TST", "HTS_TST_POS") ~ as.character(NA),
                                  TRUE ~ "Non-Index")) %>% 
-    group_by(fiscal_year, partner, indicator, age, sex, modality) %>% #snu1
+    group_by(fiscal_year, snu1, indicator, age, sex, modality) %>% #snu1
     summarise_if(is.double, sum, na.rm = TRUE) %>% 
     ungroup() %>%
     reshape_msd("long") %>% 
@@ -72,11 +72,11 @@ df_mech_map <- tibble::tribble(
 df_viz <- df_tza %>% 
   filter(str_detect(period, "Q")) %>% 
   spread(indicator, val) %>% 
-  group_by(period, partner, agesex) %>% #snu1
+  group_by(period, snu1, agesex) %>% #snu1
   mutate(HTS_POS_Share = HTS_TST_POS/sum(HTS_TST_POS, na.rm = TRUE)) %>% 
   ungroup() %>% 
-  arrange(partner, agesex, period) %>% #snu1
-  group_by(partner, agesex) %>% #snu1
+  arrange(snu1, agesex, period) %>% #snu1
+  group_by(snu1, agesex) %>% #snu1
   mutate(`VL Coverage` = TX_PVLS_D / lag(TX_CURR, 2),
          `VL Suppression` = TX_PVLS / TX_PVLS_D) %>% 
   ungroup() %>% 
@@ -84,7 +84,7 @@ df_viz <- df_tza %>%
 
 df_viz_yield <- df_viz %>% 
   filter(indicator %in% c("HTS_TST", "HTS_TST_POS")) %>% 
-  group_by(period, partner, agesex, indicator) %>% #snu1
+  group_by(period, snu1, agesex, indicator) %>% #snu1
   summarise_at(vars(val), sum, na.rm = TRUE) %>% 
   ungroup() %>% 
   spread(indicator, val) %>% 
@@ -98,29 +98,29 @@ df_viz <- bind_rows(df_viz, df_viz_yield)
 # Test Pos ----------------------------------------------------------------
 
 df_viz %>% 
-  group_by(period, partner, agesex, indicator) %>% #snu1
+  group_by(period, snu1, agesex, indicator) %>% #snu1
   summarise_at(vars(val), sum, na.rm = TRUE) %>% 
   ungroup() %>% 
   filter(indicator == "HTS_TST_POS",
          str_detect(agesex, "Unknown Age", negate = TRUE),
-         partner != "Vodafone",
-         !is.na(partner)) %>%
+         #partner != "Vodafone", !is.na(partner)
+         ) %>%
   mutate(lab = case_when(str_detect(period, "Q4") ~ comma(val))) %>% 
-  arrange(partner, agesex, period) %>% 
-  ggplot(aes(period, val, group = partner, fill = agesex)) +
+  arrange(snu1, agesex, period) %>% 
+  ggplot(aes(period, val, group = snu1, fill = agesex)) +
   geom_col(na.rm = TRUE) +
   geom_hline(aes(yintercept = 0), color = "gray50") +
   geom_text(aes(label = lab), color = "gray30",
             size = 3, vjust = -1,
             family = "Gill Sans MT", na.rm = TRUE) +
-  facet_grid(partner ~ agesex, switch = "y") +
+  facet_grid(snu1 ~ agesex, switch = "y") +
   scale_y_continuous(labels = comma, position = "right") +
   scale_fill_manual(values = c("#26456a", "#335B8E", "#739bcc")) +
   scale_x_discrete(labels = c("FY17Q1", "", "FY17Q3", "",
                               "FY18Q1", "", "FY18Q3", "",
                               "FY19Q1", "", "FY19Q3", "")) +
   labs(x = NULL, y = NULL,
-       title = "USAID Partner Trends in Test Positive",
+       title = "USAID Trends in Test Positive",
        caption = "Source: FY19Q4i MSD") +
   theme_minimal() +
   theme(legend.position = "none",
@@ -136,25 +136,25 @@ ggsave("out//TZA_SelfAssessment_Pos.png", dpi = 300,
 df_viz %>% 
   filter(indicator == "Positivity",
          str_detect(agesex, "Unknown Age", negate = TRUE),
-         partner != "Vodafone",
-         !is.na(partner)) %>%
+         #partner != "Vodafone",!is.na(partner)
+         ) %>%
   mutate(lab = case_when(str_detect(period, "Q4") ~ percent(val, .1))) %>% 
-  arrange(partner, agesex, period) %>% 
-  ggplot(aes(period, val, group = partner, color = agesex)) +
+  arrange(snu1, agesex, period) %>% 
+  ggplot(aes(period, val, group = snu1, color = agesex)) +
   geom_line(size = 1, na.rm = TRUE) +
   geom_point(size = 3, na.rm = TRUE) +
   geom_hline(aes(yintercept = 0), color = "gray50") +
   geom_text(aes(label = lab), color = "gray30",
             size = 3, vjust = -1,
             family = "Gill Sans MT", na.rm = TRUE) +
-  facet_grid(partner ~ agesex, switch = "y") +
+  facet_grid(snu1 ~ agesex, switch = "y") +
   scale_y_continuous(labels = percent_format(1), position = "right") +
   scale_color_manual(values = c("#26456a", "#335B8E", "#739bcc")) +
   scale_x_discrete(labels = c("FY17Q1", "", "FY17Q3", "",
                               "FY18Q1", "", "FY18Q3", "",
                               "FY19Q1", "", "FY19Q3", "")) +
   labs(x = NULL, y = NULL,
-       title = "USAID Partner Trends in Positivity",
+       title = "USAID Trends in Positivity",
        caption = "Source: FY19Q4i MSD") +
   theme_minimal() +
   theme(legend.position = "none",
@@ -162,37 +162,37 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
   
-ggsave("out//TZA_SelfAssessment_Positivity.png", dpi = 300,
+ggsave("out/TZA_SelfAssessment_Positivity.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 
 # Test Index ----------------------------------------------------------------
 
 df_viz %>% 
-  group_by(period, partner, agesex, indicator, modality) %>% #snu1
+  group_by(period, snu1, agesex, indicator, modality) %>% #snu1
   summarise_at(vars(val), sum, na.rm = TRUE) %>% 
   ungroup() %>% 
   filter(indicator == "HTS_TST",
          modality == "Index",
          str_detect(agesex, "Unknown Age", negate = TRUE),
-         partner != "Vodafone",
-         !is.na(partner)) %>%
+         #partner != "Vodafone", !is.na(partner)
+         ) %>%
   mutate(lab = case_when(str_detect(period, "Q4") ~ comma(val))) %>% 
-  arrange(partner, agesex, period) %>% 
-  ggplot(aes(period, val, group = partner, fill = agesex)) +
+  arrange(snu1, agesex, period) %>% 
+  ggplot(aes(period, val, group = snu1, fill = agesex)) +
   geom_col(na.rm = TRUE) +
   geom_hline(aes(yintercept = 0), color = "gray50") +
   geom_text(aes(label = lab), color = "gray30",
             size = 3, vjust = -1,
             family = "Gill Sans MT", na.rm = TRUE) +
-  facet_grid(partner ~ agesex, switch = "y") +
+  facet_grid(snu1 ~ agesex, switch = "y") +
   scale_y_continuous(labels = comma, position = "right") +
   scale_fill_manual(values = c("#26456a", "#335B8E", "#739bcc")) +
   scale_x_discrete(labels = c("FY17Q1", "", "FY17Q3", "",
                               "FY18Q1", "", "FY18Q3", "",
                               "FY19Q1", "", "FY19Q3", "")) +
   labs(x = NULL, y = NULL,
-       title = "USAID Partner Trends in Index Tests",
+       title = "USAID Trends in Index Tests",
        caption = "Source: FY19Q4i MSD") +
   theme_minimal() +
   theme(legend.position = "none",
@@ -209,11 +209,11 @@ df_viz %>%
   filter(indicator == "HTS_POS_Share",
          modality == "Index",
          str_detect(agesex, "Unknown Age", negate = TRUE),
-         partner != "Vodafone",
-         !is.na(partner)) %>%
+         #partner != "Vodafone",!is.na(partner)
+         ) %>%
   mutate(lab = case_when(str_detect(period, "Q4") ~ percent(val, 1))) %>% 
-  arrange(partner, agesex, period) %>% 
-  ggplot(aes(period, val, group = partner, color = agesex)) +
+  arrange(snu1, agesex, period) %>% 
+  ggplot(aes(period, val, group = snu1, color = agesex)) +
   geom_blank(aes(y = 1.1 * val)) +
   geom_line(size = 1, na.rm = TRUE) +
   geom_point(size = 3, na.rm = TRUE) +
@@ -221,14 +221,14 @@ df_viz %>%
   geom_text(aes(label = lab), color = "gray30",
             size = 3, vjust = -1,
             family = "Gill Sans MT", na.rm = TRUE) +
-  facet_grid(partner ~ agesex, switch = "y") +
+  facet_grid(snu1 ~ agesex, switch = "y") +
   scale_y_continuous(labels = percent_format(1), position = "right") +
   scale_color_manual(values = c("#26456a", "#335B8E", "#739bcc")) +
   scale_x_discrete(labels = c("FY17Q1", "", "FY17Q3", "",
                               "FY18Q1", "", "FY18Q3", "",
                               "FY19Q1", "", "FY19Q3", "")) +
   labs(x = NULL, y = NULL,
-       title = "USAID Partner Trends in Index Share",
+       title = "USAID Trends in Index Share",
        caption = "Source: FY19Q4i MSD") +
   theme_minimal() +
   theme(legend.position = "none",
