@@ -56,7 +56,7 @@ df_ouim_tx %>%
         strip.text = element_text(size = 16, face = "bold"),
         plot.title = element_text(face = "bold"))
     
-ggsave("../Downloads/FY19Q4_TX_Trends_Agency.png",
+ggsave("out/FY19Q4_TX_Trends_Agency.png",
        dpi = 300, units = "in", width = 10, height = 5.6)
 
 q4_mechs <- df_ouim %>% 
@@ -111,5 +111,5 @@ df_ouim_tx2 %>%
         strip.text = element_text(size = 16, face = "bold"),
         plot.title = element_text(face = "bold"))
 
-ggsave("../Downloads/FY19Q4_TX_Trends_Agency2.png",
+ggsave("out/FY19Q4_TX_Trends_Agency2.png",
        dpi = 300, units = "in", width = 10, height = 5.6)

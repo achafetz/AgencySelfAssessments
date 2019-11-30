@@ -67,5 +67,5 @@ df_link %>%
         strip.text = element_text(size = 12, face = "bold"),
         strip.background.x = element_rect(fill = "gray90", color = "gray90"))
 
-ggsave("C:/Users/achafetz/Downloads/MWI_Linkage.png", dpi = 300,
+ggsave("out/MWI_Linkage.png", dpi = 300,
        height = 5.6, width = 10, units = "in")

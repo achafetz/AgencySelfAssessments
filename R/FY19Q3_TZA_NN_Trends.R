@@ -139,8 +139,7 @@
             plot.caption = element_text(color = "gray30"),
             text = element_text(family = "Gill Sans MT"))
     
-    ggsave("TZA_Tx_AgencyTrends.png",
-           path = "../Downloads/",
+    ggsave("out/TZA_Tx_AgencyTrends.png",
            dpi = 300, width = 6.66, height = 5.63, units = "in")
 
     
@@ -178,8 +177,7 @@
             plot.caption = element_text(color = "gray30"),
             text = element_text(family = "Gill Sans MT"))
     
-    ggsave("TZA_Cum_Tx_AgencyTrends.png",
-           path = "../Downloads/",
+    ggsave("out/TZA_Cum_Tx_AgencyTrends.png",
            dpi = 300, width = 6.66, height = 5.63, units = "in")
   
     rm(df_nn_targets)
@@ -225,12 +223,12 @@
     
     viz_agency(df_tza_tx, "USAID") 
     
-    ggsave("../Downloads/TZA_Tx_Trends_USAID.png", dpi = 300,
+    ggsave("out/TZA_Tx_Trends_USAID.png", dpi = 300,
            units = "in", width = 6.66, height = 5.63)
     
     viz_agency(df_tza_tx, "CDC")  
     
-    ggsave("../Downloads/TZA_Tx_Trends_CDC.png", dpi = 300,
+    ggsave("out/TZA_Tx_Trends_CDC.png", dpi = 300,
            units = "in", width = 6.66, height = 5.63)
     
     
@@ -279,12 +277,12 @@
     
     viz_cum_nn(df_tza_tx, "USAID") 
     
-    ggsave("../Downloads/TZA_Tx_Cum_Trends_USAID_IM.png", dpi = 300,
+    ggsave("out/TZA_Tx_Cum_Trends_USAID_IM.png", dpi = 300,
            units = "in", width = 6.66, height = 5.63)
 
     viz_cum_nn(df_tza_tx, "CDC") 
     
-    ggsave("../Downloads/TZA_Tx_Cum_Trends_CDC_IM.png", dpi = 300,
+    ggsave("out/TZA_Tx_Cum_Trends_CDC_IM.png", dpi = 300,
            units = "in", width = 6.66, height = 5.63)
     
     
@@ -358,12 +356,12 @@
     
     viz_cum_nn_snu(df_tza_tx, "USAID")
     
-    ggsave("../Downloads/TZA_Tx_Cum_Trends_USAID_SNU.png", dpi = 300,
+    ggsave("out/TZA_Tx_Cum_Trends_USAID_SNU.png", dpi = 300,
            units = "in", width = 6.66, height = 5.63)
     
     viz_cum_nn_snu(df_tza_tx, "CDC")
     
-    ggsave("../Downloads/TZA_Tx_Cum_Trends_CDC_SNU.png", dpi = 300,
+    ggsave("out/TZA_Tx_Cum_Trends_CDC_SNU.png", dpi = 300,
            units = "in", width = 6.66, height = 5.63)
     
     
@@ -443,13 +441,13 @@
   viz_agency(df_tza_tx, "USAID") 
   
   ggsave("TZA_Cum_Tx_USAID_IM_Trends.png",
-         path = "../Downloads/",
+         path = "out/",
          dpi = 300, width = 6.66, height = 5.63, units = "in")
   
   viz_agency(df_tza_tx, "CDC")  
   
   ggsave("TZA_Cum_Tx_CDC_IM_Trends.png",
-         path = "../Downloads/",
+         path = "out/",
          dpi = 300, width = 6.66, height = 5.63, units = "in")
 
   df_tza_nn %>% 
@@ -554,7 +552,7 @@
           panel.grid.major.x = element_blank(),
           text = element_text(family = "Gill Sans MT"))
   
-  ggsave("../Downloads/TZA_Tx_Trends_CDC_SNU.png", dpi = 300,
+  ggsave("out/TZA_Tx_Trends_CDC_SNU.png", dpi = 300,
          units = "in", width = 9.5, height = 4)
   
   
@@ -638,7 +636,7 @@
             axis.ticks = element_blank(),
             text = element_text(family = "Gill Sans MT"))
   
-  ggsave("../Downloads/TZA_Tx_Trends_both.png", dpi = 300,
+  ggsave("out/TZA_Tx_Trends_both.png", dpi = 300,
          units = "in", width = 9.5, height = 4)
   
 

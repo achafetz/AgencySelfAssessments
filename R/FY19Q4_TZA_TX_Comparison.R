@@ -115,7 +115,7 @@ v_new <- df_viz %>%
 # ggsave("TX_NET_NEW_USAID_Trends.png", plot = v_out, path = "../Downloads",
 #        height = 5.63, width = 10, units = "in", dpi = 300)
 
-ggsave("TX_NET_NEW_TZA_USAID_Trends.png", plot = v_out, path = "../Downloads",
+ggsave("out/TX_NET_NEW_TZA_USAID_Trends.png", plot = v_out,
        height = 5.63, width = 10, units = "in", dpi = 300)
 
 #Ou breakdown
@@ -192,5 +192,5 @@ df_tx_combo %>%
         plot.caption = element_text(size = 9, color = "gray30"),
         legend.position = "none")
 
-ggsave("TX_Agency_Comaparison.png", path = "../Downloads",
+ggsave("out/TX_Agency_Comaparison.png",
        height = 5.63, width = 10, units = "in", dpi = 300)

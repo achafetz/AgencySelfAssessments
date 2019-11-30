@@ -128,7 +128,7 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
 
-ggsave("../Downloads/TZA_SelfAssessment_Pos.png", dpi = 300,
+ggsave("out//TZA_SelfAssessment_Pos.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 # Positivity --------------------------------------------------------------
@@ -162,7 +162,7 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
   
-ggsave("../Downloads/TZA_SelfAssessment_Positivity.png", dpi = 300,
+ggsave("out//TZA_SelfAssessment_Positivity.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 
@@ -200,7 +200,7 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
 
-ggsave("../Downloads/TZA_SelfAssessment_IndexTests.png", dpi = 300,
+ggsave("out//TZA_SelfAssessment_IndexTests.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 # Index Share -------------------------------------------------------------
@@ -236,7 +236,7 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
   
-ggsave("../Downloads/TZA_SelfAssessment_PosIndexShare.png", dpi = 300,
+ggsave("out//TZA_SelfAssessment_PosIndexShare.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 
@@ -271,7 +271,7 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
 
-ggsave("../Downloads/TZA_SelfAssessment_TX_CURR.png", dpi = 300,
+ggsave("out//TZA_SelfAssessment_TX_CURR.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 # NET_NEW -----------------------------------------------------------------
@@ -305,7 +305,7 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
 
-ggsave("../Downloads/TZA_SelfAssessment_NetNew.png", dpi = 300,
+ggsave("out//TZA_SelfAssessment_NetNew.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 # VL ----------------------------------------------------------------------
@@ -350,5 +350,5 @@ df_viz_vl %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 11, face = "bold"))
 
-ggsave("../Downloads/TZA_SelfAssessment_VL.png", dpi = 300,
+ggsave("out//TZA_SelfAssessment_VL.png", dpi = 300,
        height = 5.6, width = 10, units = "in")

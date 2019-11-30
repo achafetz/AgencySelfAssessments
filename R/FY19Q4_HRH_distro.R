@@ -12,7 +12,7 @@
   library(gridExtra)
 
 #import
-  path <- "C:/Users/achafetz/Downloads/PEPFAR-Data-Genie-SiteByIMs-2019-11-29.zip"
+  path <- "../Downloads/PEPFAR-Data-Genie-SiteByIMs-2019-11-29.zip"
   df <- read_msd(path)
   
 #select country
@@ -128,6 +128,6 @@
 
  viz_out <- grid.arrange(viz_share, viz_cadre, nrow = 1)
 
- ggsave("../Downloads/MWI_HRH_Distro.png", viz_out, dpi = 300,
+ ggsave("out/MWI_HRH_Distro.png", viz_out, dpi = 300,
         height = 5.6, width = 10, units = "in")     
   

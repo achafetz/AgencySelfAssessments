@@ -102,7 +102,7 @@
     bind_rows(df_adj_tx, .) %>% 
     select(-starts_with("fy2017"))
   
-  write_csv(df_adj_nn, "../Downloads/TZA_Q4_TX_Adj.csv", na = "") 
+  write_csv(df_adj_nn, "out/TZA_Q4_TX_Adj.csv", na = "") 
   
   
   
@@ -127,7 +127,7 @@
     arrange(indicator) %>% 
     select(-starts_with("fy2017"))
   
-  write_csv(df_unadj, "../Downloads/TZA_Q4_TX_unAdj.csv", na = "") 
+  write_csv(df_unadj, "out/TZA_Q4_TX_unAdj.csv", na = "") 
 
   
   
