@@ -2,7 +2,7 @@
 ## AUTHOR:   A.CHAFETZ | USAID
 ## PURPOSE:  MWI trends in Linakge
 ## DATE:     2019-11-20
-## UPDATED:  2019-11-27
+## UPDATED:  2019-12-02
 
 #dependencies
 library(tidyverse)
@@ -11,18 +11,26 @@ library(scales)
 library(extrafont)
 
 #import
-path <- list.files("~/ICPI/Data", "OU_IM", full.names = TRUE)
+path <- list.files("~/ICPI/Data", "PSNU_IM", full.names = TRUE)
 
 df_mer <- read_rds(path)
+
+acceleration <- c("Blantyre District",
+                  "Zomba District",
+                  "Mangochi District",
+                  "Machinga District",
+                  "Chikwawa District")
 
 df_link <- df_mer %>% 
   filter(operatingunit == "Malawi",
          fundingagency == "USAID",
          mech_name != "LINKAGES",
+         psnu %in% acceleration,
          indicator %in% c("HTS_TST_POS", "TX_NEW"),
          standardizeddisaggregate == "Total Numerator") %>%
   mutate(mech_name = case_when(mech_name == "Baylor TSP" ~ "Baylor",
-                           mech_name %in% c("EQUIP","OHSEC") ~ "EQUIP/PIH",
+                               mech_name == "OHSEC" ~ "PIH",
+                               #mech_name %in% c("EQUIP","OHSEC") ~ "EQUIP/PIH",
                            TRUE ~ mech_name)) %>%
   group_by(mech_name, indicator, fiscal_year) %>% 
   summarise_if(is.double, sum, na.rm = TRUE) %>% 
@@ -40,7 +48,8 @@ df_link <- df_mer %>%
                          TRUE ~ max(val) * 1.1),
          lab = case_when(indicator == "Proxy Linkage" & str_detect(period, "Q(2|4)") ~ percent(val,2),
                          str_detect(period, "Q(2|4)") ~ comma(val)),
-         mech_name = factor(mech_name, c("EQUIP/PIH", "Baylor")))
+         mech_name = factor(mech_name, c("EQUIP", "PIH", "Baylor")))
+         #mech_name = factor(mech_name, c("EQUIP/PIH", "Baylor")))
 
 df_link %>% 
   ggplot(aes(period, val, group = mech_name, color = mech_name)) +
@@ -55,8 +64,9 @@ df_link %>%
   scale_x_discrete(labels = c("", "FY17Q3", "",
                               "FY18Q1", "", "FY18Q3", "",
                               "FY19Q1", "", "FY19Q3", "")) +
-  scale_color_manual(values = c("#335B8E", "#739bcc")) + #"#26456a",
+  scale_color_manual(values = c("#335B8E", "#739bcc", "#26456a")) + #,
   labs(x = NULL, y = NULL, caption = "Note: Disaggregate = Total Numerator,
+Limited to 5 acceleration districts (excluding Lilongwe)
        Source: FY19Q4i MSD") +
   facet_grid(indicator ~ mech_name, scales = "free_y",switch = "y") +
   theme_minimal() +
@@ -67,5 +77,5 @@ df_link %>%
         strip.text = element_text(size = 12, face = "bold"),
         strip.background.x = element_rect(fill = "gray90", color = "gray90"))
 
-ggsave("out/MWI_Linkage.png", dpi = 300,
+ggsave("out/MWI_Linkage_updated.png", dpi = 300,
        height = 5.6, width = 10, units = "in")

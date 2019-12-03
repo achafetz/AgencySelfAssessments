@@ -97,8 +97,20 @@ df_viz <- bind_rows(df_viz, df_viz_yield)
 
 # Test Pos ----------------------------------------------------------------
 
-df_viz %>% 
-  group_by(period, snu1, agesex, indicator) %>% #snu1
+df_snu_lump <- df_viz %>% 
+  filter(str_detect(period, "FY19"),
+         indicator == "HTS_TST_POS") %>% 
+  group_by(snu1) %>% 
+  summarise_at(vars(val), sum, na.rm = TRUE) %>% 
+  ungroup() %>% 
+  mutate(snu_lump = fct_lump(snu1, 8, w = val, other_level = "All Other")) %>% 
+  select(snu1, snu_lump)
+
+x <- df_viz %>% 
+  left_join(df_snu_lump) %>%
+  #mutate(snu_lump = ifelse(is.na(snu_lump), "All Other", snu_lump)) %>% 
+  filter(!is.na(snu_lump)) %>% 
+  group_by(period, snu_lump, agesex, indicator) %>% #snu1
   summarise_at(vars(val), sum, na.rm = TRUE) %>% 
   ungroup() %>% 
   filter(indicator == "HTS_TST_POS",
@@ -106,14 +118,14 @@ df_viz %>%
          #partner != "Vodafone", !is.na(partner)
          ) %>%
   mutate(lab = case_when(str_detect(period, "Q4") ~ comma(val))) %>% 
-  arrange(snu1, agesex, period) %>% 
-  ggplot(aes(period, val, group = snu1, fill = agesex)) +
+  arrange(snu_lump, agesex, period) %>% 
+  ggplot(aes(period, val, group = snu_lump, fill = agesex)) +
   geom_col(na.rm = TRUE) +
   geom_hline(aes(yintercept = 0), color = "gray50") +
   geom_text(aes(label = lab), color = "gray30",
             size = 3, vjust = -1,
             family = "Gill Sans MT", na.rm = TRUE) +
-  facet_grid(snu1 ~ agesex, switch = "y") +
+  facet_grid(snu_lump ~ agesex, switch = "y") +
   scale_y_continuous(labels = comma, position = "right") +
   scale_fill_manual(values = c("#26456a", "#335B8E", "#739bcc")) +
   scale_x_discrete(labels = c("FY17Q1", "", "FY17Q3", "",
@@ -126,9 +138,10 @@ df_viz %>%
   theme(legend.position = "none",
         text = element_text(family = "Gill Sans MT"),
         plot.caption = element_text(color = "gray30"),
-        strip.text = element_text(size = 12, face = "bold"))
+        strip.text = element_text(size = 11, face = "bold"),
+        strip.text.y = element_text(size = 6, face = "bold"))
 
-ggsave("out//TZA_SelfAssessment_Pos.png", dpi = 300,
+ggsave("out/TZA_SelfAssessment_Pos.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 # Positivity --------------------------------------------------------------
@@ -200,7 +213,7 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
 
-ggsave("out//TZA_SelfAssessment_IndexTests.png", dpi = 300,
+ggsave("out/TZA_SelfAssessment_IndexTests.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 # Index Share -------------------------------------------------------------
@@ -236,7 +249,7 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
   
-ggsave("out//TZA_SelfAssessment_PosIndexShare.png", dpi = 300,
+ggsave("out/TZA_SelfAssessment_PosIndexShare.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 
@@ -245,25 +258,25 @@ ggsave("out//TZA_SelfAssessment_PosIndexShare.png", dpi = 300,
 df_viz %>% 
   filter(indicator == "TX_CURR",
          str_detect(agesex, "Unknown Age", negate = TRUE),
-         !partner %in% c("Vodafone", "Challenge TB", "JHPIEGO"),
-         !is.na(partner)) %>%
+         #!partner %in% c("Vodafone", "Challenge TB", "JHPIEGO"), !is.na(partner)
+         ) %>%
   mutate(lab = case_when(str_detect(period, "Q4") ~ comma(val))) %>% 
-  arrange(partner, agesex, period) %>% 
-  ggplot(aes(period, val, group = partner, fill = agesex)) +
+  arrange(snu1, agesex, period) %>% 
+  ggplot(aes(period, val, group = snu1, fill = agesex)) +
   geom_col(na.rm = TRUE) +
   geom_blank(aes(y = 1.1 * val)) +
   geom_hline(aes(yintercept = 0), color = "gray50") +
   geom_text(aes(label = lab), color = "gray30",
             size = 3, vjust = -1,
             family = "Gill Sans MT", na.rm = TRUE) +
-  facet_grid(partner ~ agesex, switch = "y") +
+  facet_grid(snu1 ~ agesex, switch = "y") +
   scale_y_continuous(labels = comma, position = "right") +
   scale_fill_manual(values = c("#26456a", "#335B8E", "#739bcc")) +
   scale_x_discrete(labels = c("FY17Q1", "", "FY17Q3", "",
                               "FY18Q1", "", "FY18Q3", "",
                               "FY19Q1", "", "FY19Q3", "")) +
   labs(x = NULL, y = NULL,
-       title = "USAID Partner Trends in Current on Treatment",
+       title = "USAID Trends in Current on Treatment",
        caption = "Source: FY19Q4i MSD") +
   theme_minimal() +
   theme(legend.position = "none",
@@ -271,7 +284,7 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
 
-ggsave("out//TZA_SelfAssessment_TX_CURR.png", dpi = 300,
+ggsave("out/TZA_SelfAssessment_TX_CURR.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 # NET_NEW -----------------------------------------------------------------
@@ -280,24 +293,24 @@ ggsave("out//TZA_SelfAssessment_TX_CURR.png", dpi = 300,
 df_viz %>% 
   filter(indicator == "TX_NET_NEW",
          str_detect(agesex, "Unknown Age", negate = TRUE),
-         !partner %in% c("Vodafone", "Challenge TB", "JHPIEGO"),
-         !is.na(partner)) %>%
+         #!partner %in% c("Vodafone", "Challenge TB", "JHPIEGO"),!is.na(partner)
+         ) %>%
   mutate(lab = case_when(str_detect(period, "Q4") ~ comma(val))) %>% 
-  arrange(partner, agesex, period) %>% 
-  ggplot(aes(period, val, group = partner, fill = agesex)) +
+  arrange(snu1, agesex, period) %>% 
+  ggplot(aes(period, val, group = snu1, fill = agesex)) +
   geom_col(na.rm = TRUE) +
   geom_hline(aes(yintercept = 0), color = "gray50") +
   geom_text(aes(label = lab), color = "gray30",
             size = 3, vjust = -1,
             family = "Gill Sans MT", na.rm = TRUE) +
-  facet_grid(partner ~ agesex, scales = "free_y", switch = "y") +
+  facet_grid(snu1 ~ agesex, scales = "free_y", switch = "y") +
   scale_y_continuous(labels = comma, position = "right") +
   scale_fill_manual(values = c("#26456a", "#335B8E", "#739bcc")) +
   scale_x_discrete(labels = c("FY17Q1", "", "FY17Q3", "",
                               "FY18Q1", "", "FY18Q3", "",
                               "FY19Q1", "", "FY19Q3", "")) +
   labs(x = NULL, y = NULL,
-       title = "USAID Partner Trends in Net New on Treatment",
+       title = "USAID Trends in Net New on Treatment",
        caption = "Source: FY19Q4i MSD") +
   theme_minimal() +
   theme(legend.position = "none",
@@ -305,7 +318,7 @@ df_viz %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 12, face = "bold"))
 
-ggsave("out//TZA_SelfAssessment_NetNew.png", dpi = 300,
+ggsave("out/TZA_SelfAssessment_NetNew.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
 
 # VL ----------------------------------------------------------------------
@@ -316,8 +329,8 @@ df_viz_vl <- df_tza %>%
          str_detect(agesex, "Unknown Age", negate = TRUE),
          indicator %in% c("TX_PVLS", "TX_PVLS_D", "TX_CURR")) %>% 
   spread(indicator, val) %>% 
-  arrange(partner, agesex, period) %>% 
-  group_by(partner, agesex) %>% #snu1
+  arrange(snu1, agesex, period) %>% 
+  group_by(snu1, agesex) %>% #snu1
   mutate(`VL Coverage` = TX_PVLS_D / lag(TX_CURR, 2),
          `VL Suppression` = TX_PVLS / TX_PVLS_D) %>% 
   ungroup() %>% 
@@ -327,22 +340,22 @@ df_viz_vl %>%
   filter(indicator %in% c("VL Coverage", "VL Suppression"),
          str_detect(agesex, "Unknown Age", negate = TRUE)) %>%
   mutate(lab = case_when(str_detect(period, "Q4") ~ percent(val, 1))) %>% 
-  arrange(partner, agesex, period) %>% 
-  ggplot(aes(period, val, group = partner, color = agesex)) +
+  arrange(snu1, agesex, period) %>% 
+  ggplot(aes(period, val, group = snu1, color = agesex)) +
   geom_line(size = 1, na.rm = TRUE) +
   geom_point(size = 3.5, na.rm = TRUE) +
   geom_hline(aes(yintercept = 0), color = "gray50") +
   geom_text(aes(label = lab), color = "gray30",
             size = 2.5, vjust = -1,
             family = "Gill Sans MT", na.rm = TRUE) +
-  facet_grid(partner ~ agesex + indicator, switch = "y") +
+  facet_grid(snu1 ~ agesex + indicator, switch = "y") +
   scale_y_continuous(labels = percent_format(1), position = "right") +
   scale_color_manual(values = c("#26456a", "#335B8E", "#739bcc")) +
   scale_x_discrete(labels = c("FY17", "", "", "",
                               "FY18", "", "", "",
                               "FY19", "", "", "")) +
   labs(x = NULL, y = NULL,
-       title = "USAID Partner Trends in VL Coverage & Suppression",
+       title = "USAID Trends in VL Coverage & Suppression",
        caption = "Source: FY19Q4i MSD") +
   theme_minimal() +
   theme(legend.position = "none",
@@ -350,5 +363,5 @@ df_viz_vl %>%
         plot.caption = element_text(color = "gray30"),
         strip.text = element_text(size = 11, face = "bold"))
 
-ggsave("out//TZA_SelfAssessment_VL.png", dpi = 300,
+ggsave("out/TZA_SelfAssessment_VL.png", dpi = 300,
        height = 5.6, width = 10, units = "in")
