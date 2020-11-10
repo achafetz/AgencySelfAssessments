@@ -1,0 +1,309 @@
+---
+title: "FY20 Review"
+author: "A.Chafetz"
+date: "10/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(vroom)
+library(ICPIutilities)
+library(extrafont)
+library(scales)
+library(glitr)
+library(glue)
+library(RColorBrewer)
+library(ggtext)
+```
+
+## Global variables
+```{r}
+  #PSNU xIM MSD path
+    path <- "Data/MER_Structured_Datasets_PSNU_IM_FY18-21_20200918_v2_1_Tanzania.rds"
+    path_impatt <- "../../Data/MER_Structured_Datasets_NAT_SUBNAT_FY15-21_20200918_v2_1.rds"
+    
+  #quarter info
+    goal_achv = .75
+    goal_achv_lo = goal_achv - .1
+    goal_achv_up = goal_achv + .1
+    
+  #colors
+    brewer_grn <- brewer.pal(3, "BuGn")[3]
+    siei_pal <- c("#2057a7", "#1e87a5", "#c43d4d", "#f2bc40", "#8980cb", "#287c6f", "#e07653")
+
+    df_agency_col <- tibble::tribble(
+      ~fundingagency, ~color,
+             "USAID", "#2057a7",
+               "CDC", "#8980cb",
+               "DOD", "#287c6f")
+
+```
+
+```{r include=FALSE}
+  #import
+    df_msd <- read_rds(path)
+  
+  #update agency names
+    df_msd <- mutate(df_msd, fundingagency = str_remove(fundingagency, "HHS/"))
+  
+  #rename official
+    df_msd <- rename_official(df_msd)
+    
+  #current fy
+    curr_fy <- identifypd(df_msd, "year")
+    
+  #current 
+    curr_qtr <- identifypd(df_msd) %>% str_remove("20") %>% toupper
+    
+  #import impatt
+    df_impatt <- read_rds(path_impatt)
+  
+  #covid mobility data
+    mobility <- vroom("data/2020_TZ_Region_Mobility_Report.csv")
+```
+
+## COVID Context
+
+COVID cases may not have been reported, but we can still see large declines in mobility, especially in FY20Q3 (Apr - Jul)
+
+```{r}
+  
+  mobility <- mobility %>% 
+    pivot_longer(retail_and_recreation_percent_change_from_baseline:residential_percent_change_from_baseline,
+                 names_to = "indicator",
+                 # names_pattern = "[^_percent_change_from_baseline]"
+                 ) %>% 
+    mutate(value = value /100)
+  
+  
+  mobility <- mobility %>% 
+    mutate(indicator = str_remove(indicator, "_percent_change_from_baseline") %>% 
+             str_replace_all("_", " ") %>% 
+             str_to_sentence())
+  
+  mobility %>% 
+    filter(country_region == "Tanzania",
+           is.na(sub_region_1)) %>% 
+    ggplot(aes(date, value)) +
+    geom_vline(xintercept = as.Date(c("2020-04-01", "2020-07-01", "2020-10-01")), color = "gray20") +
+    geom_area(fill = siei_pal[2],
+              color = siei_pal[2],
+              alpha = .7) +
+    facet_wrap(~indicator) +
+    scale_y_continuous(label = percent) +
+    labs(x = NULL, y = NULL,
+         title = "TANZANIA MOBILITY CHANGES",
+         subtitle = "change from baseline",
+         caption = "Source: Google Mobility Report") +
+    si_style() 
+  
+```
+  
+  
+  
+## Partner mapping
+
+List excludes USAID's Sauti, TMEC/RISE, MCSP, AIDSFree, NACOPHA, THPS and Tohara Salama (below list used in Q3 review).
+  
+```{r}
+  
+  # df_msd %>% 
+  #   filter(fiscal_year == 2020,
+  #          indicator %in% c("HTS_TST", "HTS_TST_POS", "TX_NEW", "TX_CURR", "TX_PVLS", "VMMC_CIRC")) %>% 
+  #   distinct(fundingagency, mech_code, primepartner, mech_name) %>% 
+  #   arrange(fundingagency, primepartner)
+  
+  df_mech_map <- tibble::tribble(
+                   ~mech_code,            ~partner,
+                       "18488",           "AMREF",
+                       "17986",          "AGPAHI",
+                       "18131",     "Intrahealth",
+                       "80095",             "MDH",
+                       "17991",            "ICAP",
+                       "18627", "HJFMRI-Southern",
+                       "18628", "HJFMRI-Military",
+                       "70356",     "Mtoto Bomba",
+                       "18237",        "Deloitte",
+                       "18060",           "EGPAF",
+                       "81965",            "EpiC"
+                   )
+
+```
+
+## Partner achivement
+
+```{r}
+#limit to cascade indicators of interest
+  df_cascade <- df_msd %>% 
+    filter(indicator %in% c("HTS_TST", "HTS_TST_POS", "TX_NEW", "TX_CURR", "TX_PVLS", "TX_TB", "TB_PREV", "VMMC_CIRC"),
+           standardizeddisaggregate %in% c("Total Numerator", "Total Denominator")
+           ) %>% 
+    mutate(indicator = ifelse(numeratordenom == "D", glue("{indicator}_D"), indicator)) %>% 
+    filter(!indicator %in% c("TB_PREV_D", "TX_TB", "TX_PVLS"))
+
+#inner join to keep just mechanism of interest
+  df_cascade <- inner_join(df_cascade, df_mech_map, by = "mech_code")
+
+#aggregate to national mech level
+  df_cascade_nat <- df_cascade %>% 
+    group_by(fundingagency, partner, fiscal_year, indicator) %>% 
+    summarise(across(where(is.double), sum, na.rm = TRUE)) %>% 
+    ungroup() %>% 
+    mutate(type = "national")
+
+#aggregate to snu1 mech level
+  df_cascade_snu <- df_cascade %>% 
+    group_by(fundingagency, partner, fiscal_year, indicator, snu1) %>% 
+    summarise(across(where(is.double), sum, na.rm = TRUE)) %>% 
+    ungroup() %>% 
+    mutate(type = "snu")
+
+#clean up for viz
+  df_viz_cas <- df_cascade_nat %>% 
+    bind_rows(df_cascade_snu) %>% 
+    filter(fiscal_year == curr_fy) %>% 
+    left_join(df_agency_col) %>% 
+    mutate(targets = na_if(targets, 0),
+           cumulative = na_if(cumulative, 0),
+           achv = cumulative / targets,
+           lab = percent(achv, 1),
+           achv_lim = ifelse(achv > 1.15, 1.15, achv),
+           indicator = factor(indicator, c("HTS_TST", "HTS_TST_POS", "TX_NEW", "TX_CURR", "TX_PVLS_D", "TX_TB_D", "TB_PREV","VMMC_CIRC")),
+           partner_c = glue("<span style='color:{color}'>{fundingagency} {partner}</span>"),
+           order = ifelse(indicator == "HTS_TST", targets, 0),
+           partner_c = fct_reorder(partner_c, order, max, .desc = TRUE)) 
+
+#base cascade plot
+  viz_cas <- df_viz_cas %>% 
+    filter(type == "national") %>% 
+    ggplot(aes(achv_lim, fct_rev(indicator))) +
+    geom_vline(xintercept = 0, color = "gray60") +
+    geom_vline(xintercept = goal_achv, color = "gray60", linetype = "dashed") +
+    geom_label(aes(x = - .02, label = comma(targets, 1), hjust = "right"),
+               label.size = 0, size = 3, family = "Source Sans Pro", na.rm = TRUE) +
+    annotate(geom = "rect",
+             xmin = goal_achv_lo, xmax = goal_achv_up, 
+             ymin = 0, ymax =  length(unique(df_viz_cas$indicator)) + 1, 
+             fill = brewer_grn, alpha = .1) +
+    expand_limits(x = -0.15) +
+    facet_wrap(~ partner_c) +
+    labs(x = NULL, y = NULL,
+         title = "CASCADE ACHIEVEMENT BY MECHANISM",
+         subtitle = "Tanzania FY20, ordered by HTS targets",
+         caption = "Note: Target achievement capped at 115% | Source: FY20Q3c MSD") +
+    si_style_nolines() +
+    theme(axis.text.x = element_blank(),
+          panel.border = element_rect(color = "gray90", fill = NA),
+          strip.text = element_markdown())
+#cascade plot - national
+  viz_cas + 
+    geom_text(aes(label = lab), size = 3, family = "Source Sans Pro", na.rm = TRUE)
+  
+#cascade plot - snu distribution
+  viz_cas + 
+    geom_jitter(data = df_viz_cas %>% filter(type == "snu"), 
+                height = .1, alpha = .3, na.rm = TRUE) +
+    geom_point(size = 3, color = "#43a2ca", alpha = .8, na.rm = TRUE) +
+    geom_text(aes(label = lab), vjust = -.6, size = 2, family = "Source Sans Pro", na.rm = TRUE)
+
+```
+
+## 90s Proxies
+
+```{r}
+
+df_plhiv <- df_impatt %>% 
+  filter(operatingunit == "Tanzania",
+         indicator == "PLHIV",
+         standardizeddisaggregate == "Total Numerator",
+         fiscal_year == curr_fy) %>% 
+  count(snu1,  wt = targets, name = "PLHIV")
+
+#filter to indicator of interest
+  df_proxy <- df_msd %>% 
+    filter(indicator %in% c("HTS_TST_POS", "TX_NEW", "TX_CURR", "TX_PVLS", "TX_NET_NEW"),
+           standardizeddisaggregate %in% c("Total Numerator", "Total Denominator"),
+           snu1 != "_Military Tanzania"
+           ) %>% 
+    mutate(indicator = ifelse(numeratordenom == "D", glue("{indicator}_D"), indicator))
+
+#aggregate to national x mech level
+  df_proxy <- df_proxy %>% 
+    group_by(fiscal_year, indicator, snu1) %>% 
+    summarise(across(c(starts_with("qtr"), "targets", cumulative), sum, na.rm = TRUE)) %>% 
+    ungroup()
+  
+#aggregate to national x mech level cumulative
+  df_proxy_cum <- df_proxy %>% 
+    filter(indicator %in% c("HTS_TST_POS","TX_NET_NEW"),
+           fiscal_year == curr_fy) %>% 
+    select(-starts_with("qtr"))%>%
+    pivot_wider(names_from = indicator, 
+                values_from = c(cumulative, targets),
+                names_glue = "{indicator}_{.value}") %>% 
+    select(-TX_NET_NEW_targets)
+  
+
+#reshape
+  df_proxy <- df_proxy %>% 
+    select(-cumulative) %>% 
+    filter(fiscal_year <= curr_fy) %>% 
+    pivot_longer(starts_with("qtr"), names_to = "period", names_prefix= "qtr") %>% 
+    mutate(period = glue("FY{str_sub(fiscal_year, 3,4)}Q{period}")) %>% 
+    select(-fiscal_year) %>% 
+    arrange(snu1, indicator, period)
+
+#net new targets
+  df_nn <- df_proxy %>% 
+    filter(indicator == "TX_CURR",
+           str_detect(period, "Q4")) %>% 
+    group_by(snu1) %>% 
+    # mutate(TX_NET_NEW_target = lead(targets, order_by = period) - value)
+    mutate(TX_NET_NEW_targets = targets - lag(value, order_by = period)) %>% 
+    ungroup() %>% 
+    filter(period == max(period)) %>% 
+    select(snu1, TX_NET_NEW_targets) 
+    
+df_achv <- df_proxy_cum %>% 
+  left_join(df_nn, by = "snu1") %>% 
+  mutate(`HTS_TST_POS Achv` = HTS_TST_POS_cumulative/HTS_TST_POS_targets,
+         `NET_NEW Achv`= TX_NET_NEW_cumulative / TX_NET_NEW_targets) %>% 
+  select(snu1, ends_with("Achv"))
+  
+df_proxy_viz <- df_proxy %>% 
+    select(-targets) %>% 
+    pivot_wider(names_from = indicator) %>% 
+    group_by(snu1) %>% 
+    mutate(VLC = TX_PVLS/lag(TX_CURR, 2, by = period)) %>% 
+    ungroup() %>% 
+    left_join(df_achv, by = "snu1") %>% 
+    mutate(VLS = TX_PVLS/TX_PVLS_D,
+           `Proxy Retention` = TX_CURR / (TX_NEW + lag(TX_CURR, by = period)),
+           `Proxy Linkage` = TX_NEW/HTS_TST_POS) %>% 
+    filter(period == curr_qtr) %>% 
+    left_join(df_plhiv) %>%
+    mutate(`TX Coverage` = TX_CURR/PLHIV) %>% 
+    select(snu1, PLHIV, VLS, VLC,`NET_NEW Achv`,`Proxy Retention`, `Proxy Linkage`, `HTS_TST_POS Achv`, `TX Coverage`) %>% 
+    arrange(desc(PLHIV)) %>% 
+  pivot_longer(-c(snu1, PLHIV), names_to = "indicator")
+
+df_proxy_viz %>% 
+  mutate(snu_plhiv = glue("{snu1} ({comma(PLHIV)})"),
+         indicator = as_factor(indicator)) %>% 
+  ggplot(aes(indicator, fct_reorder(snu_plhiv, PLHIV))) +
+  geom_tile(color = "white", fill = "gray90") +
+  geom_text(aes(label = percent(value, 1))) +
+  scale_x_discrete(position = "top") +
+  # scale_fill_brewer(palette = "OrRd", direction = -1) +
+  labs(x = NULL, y = NULL) +
+  si_style_nolines()
+
+
+```
+
