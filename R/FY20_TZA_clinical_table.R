@@ -8,20 +8,9 @@ library(extrafont)
 
 pal <- brewer.pal(5, "Spectral")[2:5]
 
-df_old <- list.files("~/Data", "OU_IM", full.names = TRUE) %>% 
+
+df <-  list.files("~/Data", "OU_IM", full.names = TRUE) %>% 
   read_rds()
-  
-df <- read_msd("data/Genie-OUByIMs-Tanzania-Daily-2020-11-18.zip")
-
-
-df_tza_old <- df_old %>% 
-  filter(operatingunit == "Tanzania",
-         indicator == "TX_CURR",
-         fundingagency != "Dedup",
-         standardizeddisaggregate == "Total Numerator",
-         fiscal_year == 2018) %>% 
-  mutate(fundingagency = str_remove(fundingagency, "HHS/")) %>% 
-  select(-c(targets:qtr3, cumulative))
 
 
 df_tza <- df %>% 
@@ -33,7 +22,6 @@ df_tza <- df %>%
   mutate(fundingagency = str_remove(fundingagency, "HHS/"))
 
 df_agency <- df_tza %>% 
-  bind_rows(df_tza_old) %>% 
   group_by(fundingagency, indicator, fiscal_year) %>% 
   summarise(across(where(is.double), sum, na.rm = TRUE)) %>% 
   ungroup() %>% 
@@ -55,7 +43,7 @@ df_nn <- df_agency %>%
 
 df_agency <- df_agency %>%
   bind_rows(df_nn) %>% 
-  filter(period != "FY18Q4") %>% 
+  filter(str_detect(period, "FY18", negate = TRUE)) %>% 
   mutate(pd = case_when(period_type == "results" ~ str_replace(period, "Q", "\nQ"),
                         period_type == "targets" ~ paste(period, "Targets", sep = "\n"),
                         period_type == "cumulative" ~  paste(period, "Total", sep = "\n")),
@@ -120,19 +108,19 @@ tbl <- tbl %>%
   tab_style(style = cell_fill(color = pal[4]),
             locations = cells_body(
               columns = vars(`FY20\nAchieved`),
-              rows = `FY19\nAchieved` >= 1.1)) %>% 
+              rows = `FY20\nAchieved` >= 1.1)) %>% 
   tab_style(style = cell_fill(color = pal[3]),
             locations = cells_body(
               columns = vars(`FY20\nAchieved`),
-              rows = `FY19\nAchieved` < 1.1)) %>% 
+              rows = `FY20\nAchieved` < 1.1)) %>% 
   tab_style(style = cell_fill(color = pal[2]),
             locations = cells_body(
               columns = vars(`FY20\nAchieved`),
-              rows = `FY19\nAchieved` < .9)) %>% 
+              rows = `FY20\nAchieved` < .9)) %>% 
   tab_style(style = cell_fill(color = pal[1]),
             locations = cells_body(
               columns = vars(`FY20\nAchieved`),
-              rows = `FY19\nAchieved` < .75)) 
+              rows = `FY20\nAchieved` < .75)) 
 
 tbl %>% 
 cols_width(
@@ -145,7 +133,6 @@ cols_width(
 
 df_ptnr <- df_tza %>% 
   filter(fundingagency == "USAID") %>% 
-  bind_rows(df_tza_old) %>% 
   rename_official() %>%
   mutate(primepartner = recode(primepartner,
                           "BAYLOR COLLEGE OF MEDICINE CH ILDREN FOUNDATION TANZANIA" = "Baylor",
@@ -153,7 +140,7 @@ df_ptnr <- df_tza %>%
                           "Elizabeth Glaser Pediatric Aids Foundation" = "EGPAF",
                           "Elizabeth Glaser Pediatric AIDS Foundation" = "EGPAF",
                           "JHPIEGO CORPORATION" = "Jhpiego",
-                          "Family Health International" = "FHI360",
+                          "Family Health International" = "EpiC",
                           "Koninklijke Nederlandse Centrale Vereniging tot Bestrijding der Tuberculose (KNCV)" = "KNVC",
                           "TANZANIA HEALTH PROMOTION SUPP ORT (THPS)" = "THPS",
                           "JSI Research And Training Institute, INC." = "JSI",
@@ -180,7 +167,7 @@ df_nn_ptnr <- df_ptnr %>%
 
 df_ptnr <- df_ptnr %>%
   bind_rows(df_nn_ptnr) %>% 
-  filter(period != "FY18Q4") %>% 
+  filter(str_detect(period, "18", negate = TRUE)) %>% 
   mutate(pd = case_when(period_type == "results" ~ str_replace(period, "Q", "\nQ"),
                         period_type == "targets" ~ paste(period, "Targets", sep = "\n"),
                         period_type == "cumulative" ~  paste(period, "Total", sep = "\n")),
@@ -197,11 +184,12 @@ df_ptnr <- df_ptnr %>%
 
 df_ptnr_grp <- df_ptnr %>% 
   # filter(!primepartner %in% c("Baylor College of Medicine", "KNVC", "NACOPHA", "THPS", "Tohara Salama"))
-  filter(primepartner %in% c("Baylor", "Deloitte", "EGPAF"))
-  # filter(primepartner %in% c("Jhpiego", "JSI"))
+  # filter(primepartner %in% c("Baylor", "Deloitte", "EGPAF"))
+  filter(primepartner %in% c("EpiC", "JSI"))
 
 tbl_ptnr <- df_ptnr_grp %>% 
-  arrange(primepartner, indicator, pd) %>% 
+  complete(pd, nesting(primepartner, indicator)) %>% 
+  arrange(primepartner, indicator, pd) %>%
   pivot_wider(names_from = pd, values_from = val) %>% 
   mutate(`FY19\nAchieved` = `FY19\nTotal` / `FY19\nTargets`,
          `FY20\nAchieved` = `FY20\nTotal` / `FY20\nTargets`) %>% 
@@ -263,19 +251,19 @@ tbl_ptnr <- tbl_ptnr %>%
   tab_style(style = cell_fill(color = pal[4]),
             locations = cells_body(
               columns = vars(`FY20\nAchieved`),
-              rows = `FY19\nAchieved` >= 1.1)) %>% 
+              rows = `FY20\nAchieved` >= 1.1)) %>% 
   tab_style(style = cell_fill(color = pal[3]),
             locations = cells_body(
               columns = vars(`FY20\nAchieved`),
-              rows = `FY19\nAchieved` < 1.1)) %>% 
+              rows = `FY20\nAchieved` < 1.1)) %>% 
   tab_style(style = cell_fill(color = pal[2]),
             locations = cells_body(
               columns = vars(`FY20\nAchieved`),
-              rows = `FY19\nAchieved` < .9)) %>% 
+              rows = `FY20\nAchieved` < .9)) %>% 
   tab_style(style = cell_fill(color = pal[1]),
             locations = cells_body(
               columns = vars(`FY20\nAchieved`),
-              rows = `FY19\nAchieved` < .75)) 
+              rows = `FY20\nAchieved` < .75)) 
 
 
 
