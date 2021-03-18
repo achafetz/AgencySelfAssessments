@@ -4,16 +4,30 @@ library(glue)
 library(gt)
 library(RColorBrewer)
 library(extrafont)
+library(glitr)
+library(glamr)
 
 
-pal <- brewer.pal(5, "Spectral")[2:5]
+# pal <- brewer.pal(5, "Spectral")[2:5]
+pal <- c(old_rose_light, burnt_sienna_light, "#5BB5D5", "#BCBEC0")
 
-
-df <-  list.files("~/Data", "OU_IM", full.names = TRUE) %>% 
+df <-  si_path() %>% 
+  return_latest("OU_IM") %>% 
   read_rds() %>% 
   filter(operatingunit == "Tanzania")
 
-df_nn <- read_csv("../right_size/Dataout/TX_CURR_NN_Calcs.csv") %>% 
+df_nn <- read_csv("../right_size/Dataout/TX_CURR_NN_Calcs.csv",
+                  col_types = c(tx_curr = "d",
+                                tx_net_new = "d",
+                                tx_curr_lag_site = "d",
+                                tx_net_new_adj = "d",
+                                tx_net_new_adj_plus = "d",
+                                tx_xfer = "d",
+                                flag_loneobs = "l",
+                                flag_multimech_site = "l",
+                                flag_end_sitexmech = "l",
+                                .default = "c"
+                                )) %>% 
   filter(operatingunit == "Tanzania")
 
 
@@ -36,7 +50,7 @@ df_nn_agg <- df_nn %>%
          str_detect(period, "FY2")) %>% 
   mutate(fundingagency = str_remove(fundingagency, "HHS/")) %>% 
   group_by(fundingagency, period) %>% 
-  summarise(val = sum(tx_net_new_adj_plus, na.rm = TRUE)) %>% 
+  summarise(value = sum(tx_net_new_adj_plus, na.rm = TRUE)) %>% 
   ungroup() %>% 
   mutate(indicator = "TX_NET_NEW (adjusted)",
          period_type = "results")
@@ -45,7 +59,7 @@ df_nn_agg <- df_nn_agg %>%
   mutate(period = "FY20",
          period_type = "cumulative") %>% 
   group_by(fundingagency, period, period_type, indicator) %>% 
-  summarise(across(c(val), sum, na.rm = TRUE)) %>% 
+  summarise(across(c(value), sum, na.rm = TRUE)) %>% 
   ungroup() %>% 
   bind_rows(df_nn_agg, .)
 
@@ -82,8 +96,10 @@ df_agency <- df_agency %>%
 
 tbl <- df_agency %>%
   arrange(fundingagency, indicator, pd) %>% 
-  pivot_wider(names_from = pd, values_from = val) %>% 
-  mutate( `FY20\nAchieved` = `FY20\nTotal` / `FY20\nTargets`) %>% 
+  pivot_wider(names_from = pd, values_from = value) %>% 
+  mutate( `FY20\nAchieved` = `FY20\nTotal` / `FY20\nTargets`,
+          `FY21\nAchieved` = `FY21\nTotal` / `FY21\nTargets`) %>% 
+  select(-`FY21\nTotal`) %>% 
   relocate(`FY20\nAchieved`, .after = `FY20\nTargets`) %>% 
   gt(rowname_col = "indicator",
      groupname_col = "fundingagency")
@@ -95,9 +111,9 @@ tbl <- tbl %>%
              indicator = "") 
 
 tbl <- tbl %>% 
-  fmt_percent(vars(`FY20\nAchieved`), decimals = 0) %>% 
+  fmt_percent(vars(`FY20\nAchieved`, `FY21\nAchieved`), decimals = 0) %>% 
   fmt_number(vars(`FY20\nQ1`, `FY20\nQ2`, `FY20\nQ3`, `FY20\nQ4`, `FY20\nTotal`, `FY20\nTargets`,
-                  `FY21\nTargets`), decimals = 0) 
+                  `FY21\nQ1`, `FY21\nTargets`), decimals = 0) 
 
 tbl <- tbl %>% 
   tab_style(
@@ -109,10 +125,10 @@ tbl <- tbl %>%
       columns = everything(),
       rows = everything()
     )) %>% 
-  # tab_style(style = cell_fill(color = pal[4]),
-  #           locations = cells_body(
-  #             columns = vars(`FY20\nAchieved`),
-  #             rows = `FY20\nAchieved` >= 1.1)) %>% 
+  tab_style(style = cell_fill(color = pal[4]),
+            locations = cells_body(
+              columns = vars(`FY20\nAchieved`),
+              rows = `FY20\nAchieved` >= 1.1)) %>%
   tab_style(style = cell_fill(color = pal[3]),
             locations = cells_body(
               columns = vars(`FY20\nAchieved`),
@@ -124,7 +140,19 @@ tbl <- tbl %>%
   tab_style(style = cell_fill(color = pal[1]),
             locations = cells_body(
               columns = vars(`FY20\nAchieved`),
-              rows = `FY20\nAchieved` < .75))
+              rows = `FY20\nAchieved` < .75)) %>% 
+  tab_style(style = cell_fill(color = pal[4]),
+            locations = cells_body(
+              columns = vars(`FY21\nAchieved`),
+              rows = `FY21\nAchieved` >= .35)) %>% 
+  tab_style(style = cell_fill(color = pal[3]),
+            locations = cells_body(
+              columns = vars(`FY21\nAchieved`),
+              rows = `FY21\nAchieved` >= .15)) %>% 
+  tab_style(style = cell_fill(color = pal[2]),
+            locations = cells_body(
+              columns = vars(`FY21\nAchieved`),
+              rows = `FY21\nAchieved` < .15))
 
 tbl <- tbl %>% 
   tab_style(
@@ -147,7 +175,7 @@ tbl %>%
   ) %>%
   fmt_missing(columns = everything(), missing_text = "-")  %>% 
   tab_source_note(
-    md("*TX_NET_NEW is adjusted to account for site tranfers <br>Source: FY20Q4i MSD*"))
+    md("*TX_NET_NEW is adjusted to account for site tranfers <br>Source: FY21Q1i MSD*"))
 
 
 
